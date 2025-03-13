@@ -1,0 +1,16 @@
+[project]
+authors = ["Ben Mares <services-git-throwaway1@tensorial.com>"]
+channels = ["conda-forge"]
+description = "Add a short description here"
+name = "elasticity"
+platforms = ["linux-64"]
+version = "0.1.0"
+
+[tasks]
+compile = "typst compile main.typ"
+watch = "typst watch main.typ"
+
+[dependencies]
+typst = ">=0.12.0,<0.13"
+python = ">=3.13.1,<3.14"
+matplotlib = ">=3.10.0,<4"

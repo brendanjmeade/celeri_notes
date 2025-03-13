@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="400" height="300" viewBox="0 0 8 6" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(0,6) scale(1,-1)">
+    <!-- Axes -->
+    <line x1="0" y1="0" x2="8" y2="0" stroke="black" stroke-width="0.02"/>
+    <line x1="0" y1="0" x2="0" y2="6" stroke="black" stroke-width="0.02"/>
+    
+    <!-- Axis labels -->
+    <g transform="translate(0,6) scale(1,-1)">
+      <text x="7.8" y="5.8" font-size="0.3">µ</text>
+      <text x="0.1" y="0.3" font-size="0.3">K</text>
+    </g>
+    
+    <!-- Grid lines (light gray) -->
+    <g stroke="#dddddd" stroke-width="0.01">
+      <line x1="2" y1="0" x2="2" y2="6"/>
+      <line x1="4" y1="0" x2="4" y2="6"/>
+      <line x1="6" y1="0" x2="6" y2="6"/>
+      <line x1="0" y1="1.5" x2="8" y2="1.5"/>
+      <line x1="0" y1="3" x2="8" y2="3"/>
+      <line x1="0" y1="4.5" x2="8" y2="4.5"/>
+    </g>
+    
+    <!-- Main contours (black) -->
+    <g stroke="black" stroke-width="0.04">
+      <!-- ν = 0 (cork) -->
+      <line x1="0" y1="0" x2="8" y2="4"/>
+      <!-- ν = 0.5 (rubber) -->
+      <line x1="0" y1="0" x2="8" y2="0"/>
+      <!-- ν = -1 (Hoberman sphere) -->
+      <line x1="0" y1="0" x2="0" y2="6"/>
+    </g>
+    
+    <!-- Labels -->
+    <g transform="translate(0,6) scale(1,-1)">
+      <text x="5" y="3.8" font-size="0.3">cork (ν = 0)</text>
+      <text x="0.2" y="2.7" font-size="0.3">rubber (ν = 0.5)</text>
+      <text x="6" y="5.2" font-size="0.3">Hoberman</text>
+      <text x="6" y="5.5" font-size="0.3">sphere</text>
+      <text x="6" y="5.8" font-size="0.3">(ν = -1)</text>
+    </g>
+  </g>
+</svg> 
