@@ -99,7 +99,7 @@ high-dimensional inference, we use a low-rank approximation, we perform an
 eigen-decomposition
 
 $$
-K = U \Lambda U^\top, \quad \Lambda = \operatorname{diag}(\lambda_1, \dots, \lambda_M),
+K = U \Lambda U^\top, \quad \Lambda = \text{diag}(\lambda_1, \dots, \lambda_M),
 $$
 
 and truncate after $n$ leading eigenmodes (largest $\lambda_i$).
