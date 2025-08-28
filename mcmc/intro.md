@@ -88,8 +88,7 @@ $$
 where $v_\text{kinematic,fault}(s)$ is the relative slip rate implied by block
 rotations and $v_\text{elastic}(s)$ is the actual elastic slip rate at the
 fault. The kinematic velocities are computed as a linear function of the
-rotation parameters $\v_text{kinematic,fault} = O_\text{kinematic,fault}
-\theta_\text{rot}$.
+rotation parameters $\v_text{kinematic,fault} = O_\text{kinematic,fault} \theta_\text{rot}$.
 
 $c(s)$ is given a Gaussian process prior, encoding smoothness along the fault mesh:
 
