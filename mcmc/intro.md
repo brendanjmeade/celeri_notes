@@ -1,6 +1,6 @@
 # Summary of the PyMC–celerí Model
 
-The geophysical forward model in **celerí** provides a linear maps from
+The geophysical forward model in **celeri** provides a linear maps from
 geodynamic parameters (block rotations, elastic slip, Mogi sources, strain
 rates, etc.) to predicted ground velocities at GPS stations.
 
@@ -34,8 +34,21 @@ Here $\mu_i(\theta)$ is the forward model prediction for station $i$, restricted
 to the horizontal $(x,y)$ directions.
 
 ## Geophysical Model Components
+
 The state vector $\theta$ is assembled from multiple physical contributions.
-Each enters linearly (except where explicitly constrained):
+Each enters linearly (except where explicitly constrained). This decomposes
+$\mu(\theta)$ into a sum compoents
+
+$$
+\mu(\theta) = v_\text{strain}
+  + v_\text{rot}
+  + v_\text{rot,okada}
+  + v_\text{mogi}
+  + v_\text{elastic}.
+$$
+
+Here, each fault (represented by a mesh) contributes its own elastic slip
+component at the location of each station.
 
 ### Block strain rates
 Each deformable block has a homogeneous 2D strain tensor with 3 parameters. We
@@ -49,9 +62,9 @@ $$
 ### Block rotations
 Each block rotates about the Earth’s center (3 parameters), again with a
 standard normal prior after rescaling. The contribution has two parts:
-- Station velocities from rigid rotation: $O_\text{rot} \, \theta_\text{rot}$.
+- Station velocities from rigid rotation: $v_\text{rot} = O_\text{rot} \, \theta_\text{rot}$.
 - Slip along faults induced by rotation, mapped through Okada dislocation
-  operators.
+  operators $v_\text{rot,okada} = O_\text{rot,okada} \, \theta_\text{rot}$.
 
 ### Mogi sources
 Point sources of pressure at fixed locations, with a scalar intensity parameter
@@ -59,7 +72,7 @@ each. Again, we use standard normal prior after rescaling. The contribution to
 the velocity is again linear:
 
 $$
-v_\text{mogi} = O_\text{mogi} \, \theta_\text{mogi}.
+v_\text{mogi} = O_\text{mogi} \theta_\text{mogi}.
 $$
 
 ### Elastic slip on faults (TDEs)
@@ -73,12 +86,14 @@ elastically at the fault.
 Define the *coupling ratio field*
 
 $$
-c(s) = \frac{v_\text{elastic}(s)}{v_\text{kinematic}(s)}, \quad s \in \text{fault surface},
+c(s) = \frac{v_\text{elastic,fault}(s)}{v_\text{kinematic,fault}(s)}, \quad s \in \text{fault surface},
 $$
 
-where $v_\text{kinematic}(s)$ is the relative slip rate implied by block
-rotations, and $v_\text{elastic}(s)$ is the actual elastic slip rate at the
-fault.
+where $v_\text{kinematic,fault}(s)$ is the relative slip rate implied by block
+rotations and $v_\text{elastic}(s)$ is the actual elastic slip rate at the
+fault. The kinematic velocities are computed as a linear function of the
+rotation parameters $\v_text{kinematic,fault} = O_\text{kinematic,fault}
+\theta_\text{rot}$.
 
 $c(s)$ is given a Gaussian process prior, encoding smoothness along the fault mesh:
 
@@ -90,12 +105,15 @@ with a squared-exponential kernel and constant variance and length scale
 hyperparameters. Those hyperparameters are currently fixed, and configured the
 same way as in the SQP solver.
 
-#### Eigen-expansion (Karhunen–Loève truncation)
+We use separate GPs for each fault. At each fault, we compute one GP for the
+strike-slip component and one for the dip-slip component, and assume
+independence between them.
 
+#### Eigen-expansion (Karhunen–Loève truncation)
 
 In practice, the GP covariance matrix $K \in \mathbb{R}^{M \times M}$ is
 computed on the mesh nodes ($M$ = number of fault DOFs). But to avoid very
-high-dimensional inference, we use a low-rank approximation, we perform an
+high-dimensional inference, we use a low-rank approximation. We perform an
 eigen-decomposition
 
 $$
@@ -115,6 +133,7 @@ This reduces the high-dimensional GP to a low-dimensional expansion that still
 captures smooth variation.
 
 #### Bounded transform for constraints
+
 Physically, coupling ratios should fall within plausible limits, e.g.
 
 $$
@@ -128,26 +147,28 @@ if both lower and upper bounds are finite, softplus if only a single bound is
 given. This ensures the posterior remains differentiable for HMC. So for instance
 
 $$
-c_\text{bounded}(s) = \text{expit}(c(s)) * (u - \ell) + \ell.
+c_\text{bounded}(s) = \text{expit}(c(s)) (u - \ell) + \ell.
 $$
 
 #### Resulting elastic slip and station velocities
 
-The elastic slip rate field is
+The elastic slip rate field on the fault surface is then
 
 $$
-v_\text{elastic}(s) = c(s) \, v_\text{kinematic}(s).
+v_\text{elastic,fault}(s) = c(s) v_\text{kinematic,fault}(s).
 $$
 
 This field is then mapped through a linear operator to yield predicted
 velocities at GPS stations:
 
 $$
-v_\text{elastic,station} = O_\text{tde} \, v_\text{elastic}.
+v_\text{elastic} = \sum_{\text{faults}}\sum_{\text{dip slip, strike slip}} O_\text{tde} v_\text{elastic,fault}.
 $$
 
 #### Alternative direct elastic formulation
-In some configurations, instead of a coupling ratio, the **elastic slip field
+
+Depending on the model configuration, we also support modeling the elastic slip
+field as a GP, instead of a coupling ratio. In this case, the elastic slip field
 itself** is given a GP prior and eigen-expansion:
 
 $$
@@ -158,18 +179,15 @@ $$
 Bounds (if any) are again imposed via softplus or sigmoid transforms, and the
 slip field is mapped linearly to station velocities.
 
+Which formulation is used is configured in the model setup, and can differ by
+fault or dip/strike component if desired.
+
 ## Likelihood and Posterior
 The complete likelihood is
 
 $$
-y \sim \mathcal{N}\left(
-  v_\text{strain}
-  + v_\text{rot}
-  + v_\text{rot,okada}
-  + v_\text{mogi}
-  + v_\text{elastic},
-  \sigma^2 I
-\right).
+\sigma \sim \text{HalfNormal}(\text{scale}=2) \\
+y \sim \mathcal{N}\left(v_\text{strain} + v_\text{rot} + v_\text{rot,okada} + v_\text{mogi} + v_\text{elastic}, \sigma^2 I \right).
 $$
 
 Since all inequality constraints (e.g. on slip rates or coupling ratios) are
@@ -177,11 +195,11 @@ enforced by bounding transforms rather than hard truncation, the posterior
 density is smooth and differentiable, so we can use gradient-based MCMC.
 
 The posterior is sampled with **HMC/NUTS** (via PyMC + nutpie). Since there are
-highly correlated parameters (e.g. slip on adjacent fault segments), we the
+highly correlated parameters (e.g. slip on adjacent fault segments), we use the
 diagonal plus low-rank mass matrix adaptation scheme from nutpie.
 
 
-## 6. Output
+## Output
 The posterior predictive mean $\hat\mu(\theta)$ is projected back into
 celerí’s state vector format for downstream analysis.
 Individual draws can be accessed as `estimation.mcmc_draw(chain_idx, draw_idx)`.
