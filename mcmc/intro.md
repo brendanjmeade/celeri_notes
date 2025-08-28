@@ -40,11 +40,7 @@ Each enters linearly (except where explicitly constrained). This decomposes
 $\mu(\theta)$ into a sum compoents
 
 $$
-\mu(\theta) = v_\text{strain}
-  + v_\text{rot}
-  + v_\text{rot,okada}
-  + v_\text{mogi}
-  + v_\text{elastic}.
+\mu(\theta) = v_\text{strain} + v_\text{rot} + v_\text{rot,okada} + v_\text{mogi} + v_\text{elastic}.
 $$
 
 Here, each fault (represented by a mesh) contributes its own elastic slip
@@ -186,8 +182,10 @@ fault or dip/strike component if desired.
 The complete likelihood is
 
 $$
+\begin{gathered}
 \sigma \sim \text{HalfNormal}(\text{scale}=2) \\
 y \sim \mathcal{N}\left(v_\text{strain} + v_\text{rot} + v_\text{rot,okada} + v_\text{mogi} + v_\text{elastic}, \sigma^2 I \right).
+\end{gathered}
 $$
 
 Since all inequality constraints (e.g. on slip rates or coupling ratios) are
