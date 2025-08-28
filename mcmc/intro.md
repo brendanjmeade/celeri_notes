@@ -1,7 +1,6 @@
 
 The geophysical forward model in celeri provides maps from geodynamic parameters
-(block rotations, elastic slip, Mogi sources, strain rates, etc.) to predicted
-ground velocities at GPS stations.
+to predicted ground velocities at GPS stations.
 
 Mathematically, if $\theta$ denotes the vector of parameters, the predicted
 velocity field at all stations is
@@ -12,27 +11,46 @@ $$
 
 where each station contributes two observed components (east and north).
 
-The state vector $\theta$ is assembled from multiple physical contributions.
-Each process contributes an additive term to the total expected velocity
-$v_\text{total}(\theta)$. The components are build from linear maps that encode
-elastic properties, that don't depend on the parameters $\theta$ and are
-precomputed by celeri.
-
-This decomposes $v_\text{total}(\theta)$ into a sum
+The state vector $\theta$ is assembled from multiple physical sources
+(strain rates, block rotations, Mogi sources, elastic slip, etc.),
+each contributing additively to the total expected velocity.
 
 $$
 v_\text{total}(\theta) = v_\text{strain} + v_\text{rot} + v_\text{rot,okada} + v_\text{mogi} + v_\text{elastic}.
 $$
 
-The PyMC model turns this deterministic forward map into a probabilistic model
+The velocity components are built from linear maps $O_\text{strain}$, $O_\text{rot}$, $O_\text{rot,okada}$, $O_\text{mogi}$, and $O_\text{kinematic,fault}$ that encode
+elastic properties.
+These linear maps don't depend on the parameters $\theta$ and are
+precomputed by celeri.
+
+This decomposes $v_\text{total}(\theta)$ into a sum
+
+$$
+v_\text{total}(\theta) = O_\text{strain} \\, \theta_\text{strain} + O_\text{rot} \\, \theta_\text{rot} + \cdots % O_\text{rot,okada} \\, \theta_\text{rot} + O_\text{mogi} \\, \theta_\text{mogi} + v_\text{elastic}.
+$$
+
+The $v_\text{elastic}$ component is more elaborate and is described below.
+
+### Uncertainty model
+
+The PyMC uncertainty model turns this deterministic forward map into a probabilistic model
 for inference.
 
-## Observations
+#### Observations
 At $N_\text{stations}$ GPS sites we observe noisy velocities
 
 $$
 y_i \in \mathbb{R}^2, \quad i=1,\dots,N_\text{stations}.
 $$
+
+#### Inference parameters
+
+The PyMC model generates samples of values for the celeri parameters $\theta$ that plausibly fit the observed noisy velocities $y_i$.
+
+The model also infers a variance parameter $\sigma^2$.
+
+#### Likelihood
 
 We assume a Gaussian likelihood with shared variance $\sigma^2$:
 
@@ -40,7 +58,7 @@ $$
 y_i \sim \mathcal{N}\left(v_\text{total, $i$}(\theta), \sigma^2 I_2\right).
 $$
 
-Here $v_\text{total, $i$}(\theta)$ is the forward model prediction for station
+Here $y_i$ is the noisy observed data, and $v_\text{total, i}(\theta)$ is the forward model prediction for station
 $i$, restricted to the horizontal $(x,y)$ directions.
 
 ## Geophysical Model Components
@@ -57,9 +75,9 @@ $$
 ### Block rotations
 Each block rotates about the Earth’s center (3 parameters), again with a
 standard normal prior after rescaling. The contribution has two parts:
-- Station velocities from rigid rotation: $v_\text{rot} = O_\text{rot} \, \theta_\text{rot}$.
+- Station velocities from rigid rotation: $v_\text{rot} = O_\text{rot} \\, \theta_\text{rot}$.
 - Slip along faults induced by rotation, mapped through Okada dislocation
-  operators $v_\text{rot,okada} = O_\text{rot,okada} \, \theta_\text{rot}$.
+  operators $v_\text{rot,okada} = O_\text{rot,okada} \\, \theta_\text{rot}$.
 
 ### Mogi sources
 Point sources of pressure at fixed locations, with a scalar intensity parameter
@@ -67,7 +85,7 @@ each. Again, we use standard normal prior after rescaling. The contribution to
 the velocity is again linear:
 
 $$
-v_\text{mogi} = O_\text{mogi} \theta_\text{mogi}.
+v_\text{mogi} = O_\text{mogi} \\, \theta_\text{mogi}.
 $$
 
 ### Elastic slip on faults (TDEs)
@@ -182,7 +200,7 @@ The complete likelihood is
 $$
 \begin{gathered}
 \sigma \sim \text{HalfNormal}(\text{scale}=2) \\
-y \sim \mathcal{N}\left(v_\text{strain} + v_\text{rot} + v_\text{rot,okada} + v_\text{mogi} + v_\text{elastic}, \sigma^2 I \right).
+y \sim \mathcal{N}\left(v_\text{total}, \sigma^2 I \right).
 \end{gathered}
 $$
 
@@ -196,6 +214,6 @@ diagonal plus low-rank mass matrix adaptation scheme from nutpie.
 
 
 ## Output
-The posterior predictive mean $\hatv_\text{total}(\theta)$ is projected back into
+The posterior predictive mean ${\hat v_\text{total}(\theta)}$ is projected back into
 celerí’s state vector format for downstream analysis.
 Individual draws can be accessed as `estimation.mcmc_draw(chain_idx, draw_idx)`.
