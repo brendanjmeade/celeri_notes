@@ -166,7 +166,7 @@ field as a GP, instead of a coupling ratio. In this case, the elastic slip field
 itself** is given a GP prior and eigen-expansion:
 
 $$
-v_\text{elastic}(s) \approx \sum_{i=1}^n \beta_i \, u_i(s),
+v_\text{elastic,fault}(s) \approx \sum_{i=1}^n \beta_i \, u_i(s),
 \quad \beta_i \sim \mathcal{N}(0, \lambda_i).
 $$
 
