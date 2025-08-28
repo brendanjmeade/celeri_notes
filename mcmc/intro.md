@@ -1,21 +1,31 @@
-# Summary of the PyMC–celerí Model
 
-The geophysical forward model in **celeri** provides a linear maps from
-geodynamic parameters (block rotations, elastic slip, Mogi sources, strain
-rates, etc.) to predicted ground velocities at GPS stations.
+The geophysical forward model in celeri provides maps from geodynamic parameters
+(block rotations, elastic slip, Mogi sources, strain rates, etc.) to predicted
+ground velocities at GPS stations.
 
 Mathematically, if $\theta$ denotes the vector of parameters, the predicted
 velocity field at all stations is
 
 $$
-\mu(\theta) \in \mathbb{R}^{2N_\text{stations}},
+v_\text{total}(\theta) \in \mathbb{R}^{2N_\text{stations}},
 $$
 
 where each station contributes two observed components (east and north).
 
+The state vector $\theta$ is assembled from multiple physical contributions.
+Each process contributes an additive term to the total expected velocity
+$v_\text{total}(\theta)$. The components are build from linear maps that encode
+elastic properties, that don't depend on the parameters $\theta$ and are
+precomputed by celeri.
+
+This decomposes $v_\text{total}(\theta)$ into a sum
+
+$$
+v_\text{total}(\theta) = v_\text{strain} + v_\text{rot} + v_\text{rot,okada} + v_\text{mogi} + v_\text{elastic}.
+$$
+
 The PyMC model turns this deterministic forward map into a probabilistic model
 for inference.
-
 
 ## Observations
 At $N_\text{stations}$ GPS sites we observe noisy velocities
@@ -27,24 +37,13 @@ $$
 We assume a Gaussian likelihood with shared variance $\sigma^2$:
 
 $$
-y_i \sim \mathcal{N}\left(\mu_i(\theta), \sigma^2 I_2\right).
+y_i \sim \mathcal{N}\left(v_\text{total, $i$}(\theta), \sigma^2 I_2\right).
 $$
 
-Here $\mu_i(\theta)$ is the forward model prediction for station $i$, restricted
-to the horizontal $(x,y)$ directions.
+Here $v_\text{total, $i$}(\theta)$ is the forward model prediction for station
+$i$, restricted to the horizontal $(x,y)$ directions.
 
 ## Geophysical Model Components
-
-The state vector $\theta$ is assembled from multiple physical contributions.
-Each enters linearly (except where explicitly constrained). This decomposes
-$\mu(\theta)$ into a sum compoents
-
-$$
-\mu(\theta) = v_\text{strain} + v_\text{rot} + v_\text{rot,okada} + v_\text{mogi} + v_\text{elastic}.
-$$
-
-Here, each fault (represented by a mesh) contributes its own elastic slip
-component at the location of each station.
 
 ### Block strain rates
 Each deformable block has a homogeneous 2D strain tensor with 3 parameters. We
@@ -86,7 +85,7 @@ c(s) = \frac{v_\text{elastic,fault}(s)}{v_\text{kinematic,fault}(s)}, \quad s \i
 $$
 
 where $v_\text{kinematic,fault}(s)$ is the relative slip rate implied by block
-rotations and $v_\text{elastic}(s)$ is the actual elastic slip rate at the
+rotations and $v_\text{elastic,fault}(s)$ is the actual elastic slip rate at the
 fault. The kinematic velocities are computed as a linear function of the
 rotation parameters $v_\text{kinematic,fault} = O_\text{kinematic,fault} \theta_\text{rot}$.
 
@@ -197,6 +196,6 @@ diagonal plus low-rank mass matrix adaptation scheme from nutpie.
 
 
 ## Output
-The posterior predictive mean $\hat\mu(\theta)$ is projected back into
+The posterior predictive mean $\hatv_\text{total}(\theta)$ is projected back into
 celerí’s state vector format for downstream analysis.
 Individual draws can be accessed as `estimation.mcmc_draw(chain_idx, draw_idx)`.
