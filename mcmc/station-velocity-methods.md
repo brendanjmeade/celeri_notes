@@ -13,7 +13,7 @@ where:
 - $\mathbf{s} \in \mathbb{R}^{n_{\text{TDE}}}$ — slip rate on each triangular element for a **single slip component** (strike-slip or dip-slip)
 - $\mathbf{G} \in \mathbb{R}^{3n_{\text{station}} \times n_{\text{TDE}}}$ — Green's function matrix for that slip component
 
-**The challenge**: $\mathbf{G}$ can be very large (thousands of TDEs × hundreds of stations), and MCMC sampling evaluates this computation millions of times.
+**The challenge**: $\mathbf{G}$ can be very large (thousands of TDEs × hundreds of stations), and MCMC sampling evaluates this computation many times (>100k for short single-chain runs).
 
 ## Method Comparison
 
