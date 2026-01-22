@@ -22,12 +22,11 @@ where:
 | **Computation** | $\mathbf{v} = -\mathbf{G}\mathbf{s}$ | $\mathbf{v} = -\mathbf{U}_k \boldsymbol{\Sigma}_k (\mathbf{V}_k^\top \mathbf{s})$ | $\mathbf{v} = \mathbf{H} (\boldsymbol{\Phi}^\top \mathbf{s})$ |
 | **Basis** | None | SVD of $\mathbf{G}$ (most observable patterns) | Mesh Laplacian eigenvectors (smoothest patterns) |
 | **Rank selection** | Full rank | Threshold-based ($\sigma > 10^{-5}$) | User-specified (`n_modes_*`) |
-| **Memory during build** | $O(n_{\text{sta}} \cdot n_{\text{TDE,total}})$ | $O(n_{\text{sta}} \cdot n_{\text{TDE,total}})$* | $O(\max_i n_{\text{sta}} \cdot n_{\text{TDE},i})$† |
+| **Memory during build** | $O(n_{\text{sta}} \cdot n_{\text{TDE,total}})$ | $O(n_{\text{sta}} \cdot n_{\text{TDE,total}})$ | $O(\max_i n_{\text{sta}} \cdot n_{\text{TDE},i})$† |
 | **Memory during MCMC** | $O(n_{\text{sta}} \cdot n_{\text{TDE,total}})$ | $O(n_{\text{sta}} \cdot n_{\text{TDE,total}})$ | $O(n_{\text{sta}} \cdot m_{\text{total}})$‡ |
-| **Streaming support** | No | No* | Yes |
+| **Streaming support** | No | No | Yes |
 
-\* Current implementation. Streaming for `low_rank` is possible in principle but not implemented.  
-† With streaming enabled (`discard_tde_to_velocities=True`). Here $i$ indexes meshes, so this is the size of the largest single mesh's $\mathbf{G}_i$ matrix.  
+† With streaming enabled (`discard_tde_to_velocities=True`). Here $i$ indexes meshes, so this is the size of the largest single mesh's $\mathbf{G}_i$ matrix.
 ‡ Here $m_{\text{total}} = \sum_i (n_{\text{modes\_ss},i} + n_{\text{modes\_ds},i})$ is the total number of eigenmodes across all meshes. The dominant term is H matrix storage; Φ matrix storage is typically smaller.
 
 ## What is "Streaming"?
@@ -87,7 +86,7 @@ $$\mathbf{v} = -\mathbf{U}_k (\boldsymbol{\Sigma}_k (\mathbf{V}_k^\top \mathbf{s
 **Disadvantages**:
 - **Current implementation** requires full $\mathbf{G}$ matrix in memory at build time (SVD is computed during PyMC model construction, not during operator building)
 - SVD recomputed for each mesh/slip-type combination at model build time
-- No streaming mode currently implemented (though it could be: pre-compute and store truncated SVD factors during operator building)
+- **Streaming is fundamentally incompatible**: Unlike `project_to_eigen`, where each mesh has its own independent Laplacian eigenvectors, an SVD of the full operator $\mathbf{G} = [\mathbf{G}_1 \ \mathbf{G}_2 \ \cdots]$ requires global orthogonality of the left singular vectors $\mathbf{U}_k$. If you instead computed SVDs of each $\mathbf{G}_i$ independently (compute-and-discard), the resulting $\mathbf{U}_{k,i}$ would *not* be mutually orthogonal across meshes, so concatenating them would not yield a valid SVD of the whole system
 - Threshold is currently hardcoded (`1e-5`)
 
 **When to use**: When you want data-driven dimensionality reduction and memory is not a constraint.
@@ -254,8 +253,6 @@ The memory optimization via streaming was added after the methods were created. 
 
 ## Potential Improvements
 
-1. **Streaming for `low_rank`**: Pre-compute and store truncated SVD factors during operator building, enabling the same streaming workflow as `project_to_eigen`. This would require moving the SVD computation from PyMC model build time to operator build time.
+1. **Truncated SVD**: Use `scipy.sparse.linalg.svds` instead of full SVD for efficiency when only top $k$ singular vectors are needed.
 
-2. **Truncated SVD**: Use `scipy.sparse.linalg.svds` instead of full SVD for efficiency when only top $k$ singular vectors are needed.
-
-3. **Configurable threshold**: Make the `low_rank` singular value threshold configurable instead of hardcoded at `1e-5`.
+2. **Configurable threshold**: Make the `low_rank` singular value threshold configurable instead of hardcoded at `1e-5`.
